@@ -15,3 +15,12 @@
 ## 저장 방식
 
 Artifact에서는 로그인한 사용자의 일정은 Artifact db(`data/users/<id>`)에 비공개로 저장되고, 저장소를 쓸 수 없을 때와 Vercel에서는 브라우저 localStorage에 저장됩니다.
+
+## 일정 비서 (챗봇)
+
+화면 오른쪽 아래 "일정 비서" 버튼으로 엽니다. 내 일정 목록과 오늘 날짜를 함께 보내 일정에 맞춰 답합니다.
+
+- Vercel: `api/chat.js`가 OpenRouter로 중계합니다. 키는 서버에만 있습니다.
+  - `OPENROUTER_API_KEY` (필수)
+  - `OPENROUTER_MODEL` (선택, 기본값 `nvidia/nemotron-3-super-120b-a12b:free`)
+- Artifact: 외부 요청이 막혀 있어 Artifact의 `sample` 기능으로 Claude에게 묻습니다.
