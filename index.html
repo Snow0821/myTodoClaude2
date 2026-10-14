@@ -1,0 +1,247 @@
+<title>내 일정 수첩</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+  /* Layout: a single narrow planner column — entry form on top, entries grouped by date like pages of a pocket diary */
+  :root {
+    --bg: #eef1f4;
+    --paper: #ffffff;
+    --ink: #1d2a3a;
+    --muted: #66758a;
+    --line: #d5dce5;
+    --accent: #2f5d8a;
+    --accent-ink: #ffffff;
+    --done: #3d7a5a;
+    --warn: #b0482f;
+    --display: "Gowun Batang", "Noto Serif KR", serif;
+    --body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161d; --paper: #19212b; --ink: #e3e9f0; --muted: #8e9bab; --line: #2c3746;
+      --accent: #7aa7d6; --accent-ink: #0d1520; --done: #79c39b; --warn: #e48a72; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161d; --paper: #19212b; --ink: #e3e9f0; --muted: #8e9bab; --line: #2c3746;
+    --accent: #7aa7d6; --accent-ink: #0d1520; --done: #79c39b; --warn: #e48a72; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.55; }
+  .wrap { max-width: 640px; margin: 0 auto; padding-inline: 16px; padding-block: 32px 64px; display: grid; gap: 24px; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  h1 { font-family: var(--display); font-size: 2rem; margin: 0; line-height: 1.2; text-wrap: balance; }
+  .sub { color: var(--muted); margin: 4px 0 0; font-size: .9rem; }
+  .progress { min-width: 140px; text-align: right; font-variant-numeric: tabular-nums; }
+  .progress b { font-size: 1.4rem; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .bar span { display: block; height: 100%; background: var(--done); width: 0; transition: width .3s; }
+
+  form { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .row > * { min-width: 0; }
+  label.lbl { font-size: .75rem; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+  input[type=text], input[type=date], input[type=time] {
+    font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 9px 11px;
+  }
+  #title { flex: 1 1 260px; }
+  input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button { font: inherit; cursor: pointer; border-radius: 6px; border: 1px solid transparent; }
+  .primary { background: var(--accent); color: var(--accent-ink); padding: 9px 18px; font-weight: 600; }
+  .primary:hover { filter: brightness(1.08); }
+
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filters button { background: transparent; color: var(--muted); border-color: var(--line); padding: 5px 12px; font-size: .85rem; }
+  .filters button[aria-pressed=true] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  .day { display: grid; gap: 6px; }
+  .day h2 { font-family: var(--display); font-size: 1.05rem; margin: 0; display: flex; gap: 10px; align-items: baseline; }
+  .day h2 small { font-family: var(--body); font-weight: 400; color: var(--muted); font-size: .8rem; }
+  .day h2 .tag { font-family: var(--body); font-size: .72rem; padding: 1px 8px; border-radius: 99px; border: 1px solid currentColor; }
+  .tag.today { color: var(--accent); } .tag.late { color: var(--warn); }
+  ul { list-style: none; margin: 0; padding: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
+  li { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-top: 1px solid var(--line); }
+  li:first-child { border-top: 0; }
+  li input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--done); flex: none; cursor: pointer; }
+  .txt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .time { color: var(--muted); font-variant-numeric: tabular-nums; font-size: .85rem; flex: none; }
+  li.done .txt { text-decoration: line-through; color: var(--muted); }
+  .del { background: transparent; color: var(--muted); padding: 4px 8px; font-size: .8rem; }
+  .del:hover { color: var(--warn); }
+  .empty { text-align: center; color: var(--muted); padding: 32px 16px; border: 1px dashed var(--line); border-radius: 10px; }
+  .note { font-size: .8rem; color: var(--muted); text-align: center; }
+  @media (prefers-reduced-motion: reduce) { .bar span { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>내 일정 수첩</h1>
+      <p class="sub" id="today"></p>
+    </div>
+    <div class="progress" aria-live="polite">
+      <div><b id="doneCount">0</b> / <span id="totalCount">0</span> 완료</div>
+      <div class="bar"><span id="barFill"></span></div>
+    </div>
+  </header>
+
+  <form id="addForm" autocomplete="off">
+    <label class="lbl" for="title">새 일정</label>
+    <div class="row">
+      <input type="text" id="title" placeholder="예: 치과 예약, 보고서 제출" maxlength="200" required>
+    </div>
+    <div class="row">
+      <input type="date" id="date" aria-label="날짜" required>
+      <input type="time" id="time" aria-label="시간 (선택)">
+      <button class="primary" type="submit">기록하기</button>
+    </div>
+  </form>
+
+  <div class="filters" role="group" aria-label="보기">
+    <button type="button" data-f="all" aria-pressed="true">전체</button>
+    <button type="button" data-f="open" aria-pressed="false">할 일</button>
+    <button type="button" data-f="done" aria-pressed="false">완료</button>
+  </div>
+
+  <main id="list">
+    <div class="empty">아직 기록된 일정이 없습니다. 위에서 첫 일정을 기록해 보세요.</div>
+  </main>
+  <p class="note" id="storeNote">불러오는 중…</p>
+</div>
+
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const pad = (n) => String(n).padStart(2, "0");
+  const ymd = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const todayStr = ymd(new Date());
+  const WD = ["일", "월", "화", "수", "목", "금", "토"];
+  $("#today").textContent = "오늘은 " + new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
+  $("#date").value = todayStr;
+
+  let items = [];       // {id, title, date, time, done, createdAt}
+  let filter = "all";
+  let store = null;     // {add, update, remove}
+
+  // Local fallback when the shared store is unavailable (signed out, preview)
+  const LS = "my-todo-items";
+  function localStore() {
+    const save = () => { try { localStorage.setItem(LS, JSON.stringify(items)); } catch (e) {} };
+    try { items = JSON.parse(localStorage.getItem(LS) || "[]"); } catch (e) { items = []; }
+    render();
+    return {
+      add(it) { items.push(it); save(); render(); },
+      update(id, patch) { const it = items.find((x) => x.id === id); if (it) Object.assign(it, patch); save(); render(); },
+      remove(id) { items = items.filter((x) => x.id !== id); save(); render(); },
+    };
+  }
+
+  async function init() {
+    let db = null, user = null;
+    try { [db, user] = await Promise.all([window.claude?.use?.("db"), window.claude?.use?.("user")]); } catch (e) {}
+    const uid = user ? await user.id() : null;
+    if (!db || !uid) {
+      store = localStore();
+      $("#storeNote").textContent = "로그인하지 않은 상태라 이 브라우저에만 저장됩니다.";
+      return;
+    }
+    const col = db.collection("data/users/" + uid);
+    $("#storeNote").textContent = "일정은 내 계정에 비공개로 저장됩니다.";
+    col.onSnapshot((snap) => {
+      items = snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+      render();
+    }, () => { $("#storeNote").textContent = "일정을 불러오지 못했습니다. 페이지를 새로고침해 주세요."; });
+    const fail = () => { $("#storeNote").textContent = "저장하지 못했습니다. 잠시 후 다시 시도해 주세요."; };
+    store = {
+      add(it) { const { id, ...data } = it; col.doc(id).set(data).catch(fail); },
+      update(id, patch) { col.doc(id).update(patch).catch(fail); },
+      remove(id) { col.doc(id).delete().catch(fail); },
+    };
+  }
+
+  function dayLabel(date) {
+    const d = new Date(date + "T00:00:00");
+    return (d.getMonth() + 1) + "월 " + d.getDate() + "일";
+  }
+
+  function render() {
+    const total = items.length, done = items.filter((x) => x.done).length;
+    $("#doneCount").textContent = done;
+    $("#totalCount").textContent = total;
+    $("#barFill").style.width = total ? (done / total * 100) + "%" : "0";
+
+    const shown = items
+      .filter((x) => filter === "all" || (filter === "done" ? x.done : !x.done))
+      .sort((a, b) => (a.date + (a.time || "99")).localeCompare(b.date + (b.time || "99")) || (a.createdAt || 0) - (b.createdAt || 0));
+
+    const list = $("#list");
+    list.textContent = "";
+    if (!shown.length) {
+      const e = document.createElement("div");
+      e.className = "empty";
+      e.textContent = total
+        ? (filter === "done" ? "아직 완료한 일정이 없습니다." : "남은 할 일이 없습니다. 모두 완료했어요!")
+        : "아직 기록된 일정이 없습니다. 위에서 첫 일정을 기록해 보세요.";
+      list.append(e);
+      return;
+    }
+    const groups = new Map();
+    shown.forEach((x) => { if (!groups.has(x.date)) groups.set(x.date, []); groups.get(x.date).push(x); });
+    const frag = document.createDocumentFragment();
+    groups.forEach((arr, date) => {
+      const sec = document.createElement("section");
+      sec.className = "day";
+      const h = document.createElement("h2");
+      h.append(dayLabel(date));
+      const sm = document.createElement("small");
+      sm.textContent = WD[new Date(date + "T00:00:00").getDay()] + "요일";
+      h.append(sm);
+      if (date === todayStr) { const t = document.createElement("span"); t.className = "tag today"; t.textContent = "오늘"; h.append(t); }
+      else if (date < todayStr && arr.some((x) => !x.done)) { const t = document.createElement("span"); t.className = "tag late"; t.textContent = "지난 일정"; h.append(t); }
+      const ul = document.createElement("ul");
+      arr.forEach((x) => {
+        const li = document.createElement("li");
+        if (x.done) li.className = "done";
+        const cb = document.createElement("input");
+        cb.type = "checkbox"; cb.checked = !!x.done; cb.id = "cb-" + x.id;
+        cb.setAttribute("aria-label", x.title + " 완료");
+        cb.addEventListener("change", () => store.update(x.id, { done: cb.checked }));
+        const txt = document.createElement("label");
+        txt.className = "txt"; txt.htmlFor = cb.id; txt.textContent = x.title;
+        li.append(cb, txt);
+        if (x.time) { const tm = document.createElement("span"); tm.className = "time"; tm.textContent = x.time; li.append(tm); }
+        const del = document.createElement("button");
+        del.type = "button"; del.className = "del"; del.textContent = "삭제";
+        del.setAttribute("aria-label", x.title + " 삭제");
+        del.addEventListener("click", () => store.remove(x.id));
+        li.append(del);
+        ul.append(li);
+      });
+      sec.append(h, ul);
+      frag.append(sec);
+    });
+    list.append(frag);
+  }
+
+  $("#addForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const title = $("#title").value.trim();
+    if (!title || !store) return;
+    store.add({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      title, date: $("#date").value || todayStr, time: $("#time").value || "",
+      done: false, createdAt: Date.now(),
+    });
+    $("#title").value = ""; $("#time").value = "";
+    $("#title").focus();
+  });
+
+  document.querySelectorAll(".filters button").forEach((b) => b.addEventListener("click", () => {
+    filter = b.dataset.f;
+    document.querySelectorAll(".filters button").forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+    render();
+  }));
+
+  init();
+})();
+</script>
