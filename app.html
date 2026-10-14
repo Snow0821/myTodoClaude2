@@ -142,7 +142,9 @@
     const uid = user ? await user.id() : null;
     if (!db || !uid) {
       store = localStore();
-      $("#storeNote").textContent = "로그인하지 않은 상태라 이 브라우저에만 저장됩니다.";
+      $("#storeNote").textContent = window.claude
+        ? "로그인하지 않은 상태라 이 브라우저에만 저장됩니다."
+        : "일정은 이 브라우저에 저장됩니다.";
       return;
     }
     const col = db.collection("data/users/" + uid);
